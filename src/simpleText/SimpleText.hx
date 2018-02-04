@@ -86,6 +86,11 @@ typedef TextAttributes = {
     // Default background color of each line, not really needed?
     @:optional public var lineColor:        Color;
     @:optional public var lineAlpha:        Color;
+    // With _tweenParam, fx, fy it's possible to add special animations.
+    @:optional var _tweenParam:       Float; // 0 to 1
+    // function ( px: Float, py: Float ) return value
+    @:optional public var fx:        Float->Float->Float;
+    @:optional public var fy:        Float->Float->Float;
 }
 // Dimensions
 typedef Dimensions = { width: Float, height: Float };
@@ -171,6 +176,23 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
     function new ( f: TextAttributes ){
         this = f;
         this.dirty = true;
+        this._tweenParam = 1.;
+    }
+    inline function animateX( px: Float, py: Float ){
+        var tp = this._tweenParam;
+        return ( 1 - tp )*this.fx( px, py ) + px*tp;
+    }
+    inline function animateY( px: Float, py: Float ){
+        var tp = this._tweenParam;
+        return ( 1 - tp )*this.fy( px, py ) + py*tp;
+    }
+    // to allow tweening of _tweenParam
+    public var tweenParam(get, set) : Float;
+    function get_tweenParam() return this._tweenParam;
+    function set_tweenParam( val : Float) { 
+        this._tweenParam = val;
+        this.dirty = true;
+        return val; 
     }
     // first pass through the content string to calculate dimensions
     public inline
@@ -447,6 +469,12 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                         var noSpaces = f.spaces[ count - 1 ];
                         px = alignmentX( dx + dW, wid, lineWid, noSpaces );
                         py = dy;
+                        if( this.fx != null ){
+                            px = animateX( px, py );
+                        }
+                        if( this.fy != null ){
+                            py = animateY( py, py );
+                        } 
                         if( letter == '_' || letter == ' ' || letter == '.' || letter == ',' || letter == ';' || letter == ';' ){
                             word_i = 0;
                         } else {
