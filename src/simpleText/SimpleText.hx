@@ -473,7 +473,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                             px = animateX( px, py );
                         }
                         if( this.fy != null ){
-                            py = animateY( py, py );
+                            py = animateY( px, py );
                         } 
                         if( letter == '_' || letter == ' ' || letter == '.' || letter == ',' || letter == ';' || letter == ';' ){
                             word_i = 0;
