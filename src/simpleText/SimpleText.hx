@@ -89,8 +89,8 @@ typedef TextAttributes = {
     // With _tweenParam, fx, fy it's possible to add special animations.
     @:optional var _tweenParam:       Float; // 0 to 1
     // function ( px: Float, py: Float ) return value
-    @:optional public var fx:        Float->Float->Float;
-    @:optional public var fy:        Float->Float->Float;
+    @:optional public var fx:        Float->Float->Float->Float->Float;
+    @:optional public var fy:        Float->Float->Float->Float->Float;
 }
 // Dimensions
 typedef Dimensions = { width: Float, height: Float };
@@ -178,13 +178,13 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
         this.dirty = true;
         this._tweenParam = 1.;
     }
-    inline function animateX( px: Float, py: Float ){
+    inline function animateX( px: Float, py: Float, charWid: Float, charHi: Float ){
         var tp = this._tweenParam;
-        return ( 1 - tp )*this.fx( px, py ) + px*tp;
+        return ( 1 - tp )*this.fx( px, py, charWid, charHi ) + px*tp;
     }
-    inline function animateY( px: Float, py: Float ){
+    inline function animateY( px: Float, py: Float, charWid: Float, charHi: Float ){
         var tp = this._tweenParam;
-        return ( 1 - tp )*this.fy( px, py ) + py*tp;
+        return ( 1 - tp )*this.fy( px, py, charWid, charHi ) + py*tp;
     }
     // to allow tweening of _tweenParam
     public var tweenParam(get, set) : Float;
@@ -428,6 +428,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
         var ph: Float;
         var hlx: Float = 0;
         var hlw: Float = 0;
+        var fW: Float;
         while( pos < len ){
 
             if( f.scrollBreaks[ breaks ] - 1 == pos + 2 ) pos++;
@@ -469,17 +470,18 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                         var noSpaces = f.spaces[ count - 1 ];
                         px = alignmentX( dx + dW, wid, lineWid, noSpaces );
                         py = dy;
-                        if( this.fx != null ){
-                            px = animateX( px, py );
-                        }
-                        if( this.fy != null ){
-                            py = animateY( px, py );
-                        } 
                         if( letter == '_' || letter == ' ' || letter == '.' || letter == ',' || letter == ';' || letter == ';' ){
                             word_i = 0;
                         } else {
                             word_i++;
                         }
+                        fW = font.width( size, letter );
+                        if( this.fx != null ){
+                            px = animateX( px, py, hi, fW );
+                        }
+                        if( this.fy != null ){
+                            py = animateY( px, py, hi, fW );
+                        } 
                         //letter = word_i + '';
                         if( f.highLight ){
                             if( f.highLightRange != null ){
@@ -488,14 +490,14 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                                     if( f.highLightRange.begin == pos ){
                                         if( f.bgHighLightAlpha != null ) g2.opacity = f.bgHighLightAlpha;
                                         if( f.bgHighLightColor != null ) g2.color = f.bgHighLightColor;
-                                        g2.fillRect( px, py, font.width( size, letter ), hi );
-                                        hlx = px + font.width( size, letter );
+                                        g2.fillRect( px, py, fW, hi );
+                                        hlx = px + fW;
                                     } else {
                                         if( f.bgHighLightAlpha != null ) g2.opacity = f.bgHighLightAlpha;
                                         if( f.bgHighLightColor != null ) g2.color = f.bgHighLightColor;
-                                        hlw = px - hlx + font.width( size, letter );
+                                        hlw = px - hlx + fW;
                                         g2.fillRect( hlx, py, hlw, hi );
-                                        hlx = px + font.width( size, letter );
+                                        hlx = px + fW;
                                     }
                                     g2.opacity = f.highLightAlpha;
                                     g2.color = f.highLightColor;
@@ -514,12 +516,12 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                         if( f.showSpace ) if( letter == '_' ) {
                             letter = ' '; //replace space with char we can see debug
                         }
-                        pw = font.width( size, letter );
+                        //pw = font.width( size, letter );
                         ph = hi;
                         var temp = word_i + 47;// c
                         if( f.dirty )f.pos.push( { x:     px, y:      py
-                                                    , width: pw, height: ph, i: pos, j: f.pos.length, charCode: temp, word_i: word_i, str: letter } );
-                        letterW = pw + spacing;
+                                                    , width: fW, height: ph, i: pos, j: f.pos.length, charCode: temp, word_i: word_i, str: letter } );
+                        letterW = fW + spacing;
                         if( letter == ' ' ){
                             if( s.hAlign == JUSTIFY ) letterW += ( wid - lineWid )/(f.spaces[count-1]);
                             spaceNo++;
@@ -594,7 +596,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                     case CLOSE:
                         r = hitWordNear( px, py );
                         if( highlight ) {
-                            if( r == null ){
+                            if( r == null || r.begin == null || r.end == null ){
                                 this.highLightRange = null;
                             } else {
                                 this.highLightRange = new AbstractRange({ begin: r.begin.i, end: r.end.i });
@@ -624,7 +626,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                     case CLOSE:
                         r = hitLineNear( px, py );
                         if( highlight ){//&& stable ) {
-                            if( r == null ){
+                            if( r == null || r.begin == null || r.end == null ){
                                 this.highLightRange = null;
                             } else {
                                 this.highLightRange = new AbstractRange({ begin: r.begin.i, end: r.end.i });
@@ -634,7 +636,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
                     case WITHIN:
                         r = hitLineWithin( px, py );
                         if( highlight ){//&& stable ) {
-                            if( r == null ){
+                            if( r == null || r.begin == null || r.end == null ){
                                 this.highLightRange = null;
                             } else {
                                 this.highLightRange = new AbstractRange({ begin: r.begin.i, end: r.end.i });
@@ -654,7 +656,7 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
     function hitLetterNear( px: Float, py: Float ): AbstractLetter {
         return if( within( px, py ) ){
             var r = hitLineNear( px, py );
-            var range = ( r == null )? null: new AbstractRange( { begin: r.begin.j, end: r.end.j } );
+            var range = ( r == null || r.begin == null || r.end == null )? null: new AbstractRange( { begin: r.begin.j, end: r.end.j } );
             var minDistance = 100000000.;
             var cx: Float;
             var dx: Float;
