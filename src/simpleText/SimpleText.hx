@@ -872,3 +872,32 @@ abstract SimpleText( TextAttributes ) to TextAttributes from TextAttributes {
         return img;
     }
 }
+class ScalableText {
+    public var txt:     SimpleText;
+    var fontScale:      Float = 1.;
+    var origSize:       Int;
+    var origWrapWidth:  Float;
+    public function new( txt_: SimpleText ){
+        txt = txt_;
+        origSize = txt.fontStyle.size;
+        origWrapWidth = txt.wrapWidth;
+    }
+    public var scale( get, set ): Float;
+    public function get_scale():Float {
+        return fontScale;
+    }
+    public function set_scale( val: Float ):Float {
+        fontScale = val;
+        txt.fontStyle.originalSizeScale( origSize, fontScale );
+        if( txt.fontStyle.dirty ) txt.wrapWidth = origWrapWidth*fontScale;
+        return fontScale;
+    }
+    public function getScaleForWidth( val: Float ): Float {
+        if( txt.width == null ) txt.calculateDimensions();
+        return val/txt.width;
+    }
+    public function getScaleForHeight( val: Float ): Float {
+        if( txt.height == null ) txt.calculateDimensions();
+        return val/txt.height;
+    }
+}
